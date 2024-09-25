@@ -1,0 +1,15 @@
+name = "phish-multi-setlist"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-09-24"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"
+
+[[kv_namespaces]]
+binding = "PHISH-MULTI-SETLIST"
+id = "684d176d58ec42ccba1d71bf5303caa9"
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "setlists"
+database_id = "3b599fac-71fe-4e2f-8b87-2be39c73d135"

@@ -1,0 +1,43 @@
+-- DROP TABLE IF EXISTS shows;
+
+-- CREATE TABLE shows (
+--     showid TEXT,
+--     showdate TEXT,
+--     permalink TEXT,
+--     showyear TEXT,
+--     uniqueid TEXT PRIMARY KEY,
+--     meta TEXT,
+--     reviews TEXT,
+--     exclude TEXT,
+--     setlistnotes TEXT,
+--     soundcheck TEXT,
+--     songid TEXT,
+--     position TEXT,
+--     transition TEXT,
+--     footnote TEXT,
+--     "set" TEXT,
+--     isjam TEXT,
+--     isreprise TEXT,
+--     isjamchart TEXT,
+--     jamchart_description TEXT,
+--     tracktime TEXT,
+--     gap TEXT,
+--     tourid TEXT,
+--     tourname TEXT,
+--     tourwhen TEXT,
+--     song TEXT,
+--     nickname TEXT,
+--     slug TEXT,
+--     is_original TEXT,
+--     venueid TEXT,
+--     venue TEXT,
+--     city TEXT,
+--     state TEXT,
+--     country TEXT,
+--     trans_mark TEXT,
+--     artistid TEXT,
+--     artist_slug TEXT,
+--     artist_name TEXT
+-- );
+
+-- CREATE INDEX shows_showid_idx ON shows (showid);
