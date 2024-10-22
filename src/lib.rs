@@ -80,6 +80,9 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> worker::Resu
         placeholders.join(", ")
     );
     
+    console_log!("Executing SQL query: {}", query);
+    console_log!("With parameters: {:?}", show_ids);
+
     // Create a map for parameter binding
     let params: Vec<(String, String)> = show_ids.clone().into_iter()
         .enumerate()
@@ -108,7 +111,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> worker::Resu
                     api_fetched_shows.append(&mut new_shows);
                 }
                 Err(e) => {
-                    console_log!("Error fetching from API for show_id {}: {:?}", show_id, e);
+                    let error_response = json!({
+                        "status": 500,
+                        "statusText": "Internal Server Error",
+                        "error": format!("Error fetching from API for show_id {}: {:?}", show_id, e)
+                    });
+                    return Response::from_json(&error_response);
                 }
             }
         }
@@ -145,8 +153,11 @@ async fn fetch_from_api(show_id: &str) -> worker::Result<Vec<Show>> {
         show_id
     );
 
+    console_log!("Fetching from API: {}", api_url);
+
     match reqwest::get(&api_url).await {
         Ok(response) => {
+            console_log!("API response status: {}", response.status());
             if response.status().is_success() {
                 let api_data = response.text().await.unwrap_or_default();
                 let show_data_draw: serde_json::Value = serde_json::from_str(&api_data)?;
@@ -201,11 +212,22 @@ async fn fetch_from_api(show_id: &str) -> worker::Result<Vec<Show>> {
                     Err("Invalid API response format".into())
                 }
             } else {
-                Err(format!("API request failed with status code: {}", response.status()).into())
+                let error_response = json!({
+                    "status": 500,
+                    "statusText": "Internal Server Error",
+                    "error": format!("API request failed with status code: {}", response.status())
+                });
+                return Response::from_json(&error_response);
             }
         }
         Err(e) => {
-            Err(format!("API request failed: {:?}", e).into())
+            console_log!("API request error: {:?}", e);
+            let error_response = json!({
+                "status": 500,
+                "statusText": "Internal Server Error",
+                "error": format!("API request failed: {:?}", e)
+            });
+            return Response::from_json(&error_response);
         }
     }
 }
@@ -293,7 +315,8 @@ async fn insert_show_into_db(db: &D1Database, show: &Show) -> worker::Result<()>
         ?,
         ?
     )";
-    db.prepare(query)
+    console_log!("Inserting show into database: {:?}", show);
+    match db.prepare(query)
         .bind(&[
             show.showid.as_str().into(),
             show.showdate.as_str().into(),
@@ -337,39 +360,73 @@ async fn insert_show_into_db(db: &D1Database, show: &Show) -> worker::Result<()>
             show.artist_name.as_str().into(),
         ])?
         .run()
-        .await?;
-    Ok(())
+        .await {
+            Ok(_) => {
+                console_log!("Successfully inserted show into database");
+                Ok(())
+            },
+            Err(e) => {
+                let error_response = json!({
+                    "status": 500,
+                    "statusText": "Internal Server Error",
+                    "error": format!("Error inserting show into database: {:?}", e)
+                });
+                return Response::from_json(&error_response);
+            }
+        }
 }
 
 fn handle_cors_preflight() -> worker::Result<Response> {
+    console_log!("Handling CORS preflight request");
     let mut response = Response::empty()?;
     add_cors_headers(&mut response);
     Ok(response)
 }
 
 fn add_cors_headers(response: &mut Response) {
+    console_log!("Adding CORS headers");
     if let Err(e) = response
         .headers_mut()
         .set("Access-Control-Allow-Origin", "*")
     {
-        console_log!("Error setting header: {:?}", e);
+        let error_response = json!({
+            "status": 500,
+            "statusText": "Internal Server Error",
+            "error": format!("Error setting header: {:?}", e)
+        });
+        return Response::from_json(&error_response);
     }
     if let Err(e) = response
         .headers_mut()
         .set("Access-Control-Allow-Credentials", "true")
     {
-        console_log!("Error setting header: {:?}", e);
+        let error_response = json!({
+            "status": 500,
+            "statusText": "Internal Server Error",
+            "error": format!("Error setting header: {:?}", e)
+        });
+        return Response::from_json(&error_response);
     }
     if let Err(e) = response
         .headers_mut()
         .set("Access-Control-Allow-Methods", "GET, OPTIONS")
     {
-        console_log!("Error setting header: {:?}", e);
+        let error_response = json!({
+            "status": 500,
+            "statusText": "Internal Server Error",
+            "error": format!("Error setting header: {:?}", e)
+        });
+        return Response::from_json(&error_response);
     }
     if let Err(e) = response
         .headers_mut()
         .set("Access-Control-Allow-Headers", "*")
     {
-        console_log!("Error setting header: {:?}", e);
+        let error_response = json!({
+            "status": 500,
+            "statusText": "Internal Server Error",
+            "error": format!("Error setting header: {:?}", e)
+        });
+        return Response::from_json(&error_response);
     }
 }
